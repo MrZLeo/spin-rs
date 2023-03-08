@@ -5,3 +5,10 @@ edition = "2021"
 
 [dependencies]
 hyper = "0.12.3"
+
+[profile.release]
+opt-level = "z"
+strip = true
+debug = false
+codegen-units = 1
+lto = true
