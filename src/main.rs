@@ -1,26 +1,15 @@
 #![deny(warnings)]
 
-use hyper::{
-    rt::{self, Future},
-    service::service_fn_ok,
-    Body, Response, Server,
-};
-extern crate hyper;
+extern crate tiny_http;
+use tiny_http::{Response, Server};
 
-const DEFAULT_PORT: u16 = 8080;
-
-fn run_server(port: u16) {
-    let addr = ([0, 0, 0, 0], port).into();
-
-    let service = move || service_fn_ok(move |_| Response::new(Body::from("spin-rs")));
-
-    let server = Server::bind(&addr)
-        .serve(service)
-        .map_err(|e| eprintln!("server error: {e}"));
-
-    rt::run(server);
-}
+const DEFAULT_IP: &str = "0.0.0.0:8080";
+const RESPONSE: &str = "spin-rs";
 
 fn main() {
-    run_server(DEFAULT_PORT)
+    let server = Server::http(DEFAULT_IP).unwrap();
+    for request in server.incoming_requests() {
+        let response = Response::from_string(RESPONSE);
+        request.respond(response).unwrap();
+    }
 }
