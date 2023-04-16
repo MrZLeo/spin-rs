@@ -6,11 +6,8 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server, StatusCode,
 };
-use std::{
-    net::{IpAddr, SocketAddr},
-    sync::atomic::{AtomicBool, Ordering},
-};
-use tokio::{process::Command, time::Instant};
+use std::net::{IpAddr, SocketAddr};
+use tokio::{process::Command, sync::OnceCell, time::Instant};
 
 #[tokio::main]
 async fn main() {
@@ -29,40 +26,43 @@ async fn main() {
 }
 
 static INSTANCE_ADDR: &str = "http://0.0.0.0:8079";
-static INSTANCE_BOOT: AtomicBool = AtomicBool::new(false);
+static INSTANCE_START: OnceCell<()> = OnceCell::const_new();
 
 /// Send the request to the real instance
 async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>, Infallible> {
     // check whether instance exsit
-    if !INSTANCE_BOOT.load(Ordering::Relaxed) {
-        let start_time = Instant::now();
-        tokio::spawn(async move {
-            Command::new("python3")
-                .arg("daemon.py")
-                .spawn()
-                .expect("fail to boot instance")
-        })
-        .await
-        .unwrap();
-        INSTANCE_BOOT.store(true.into(), Ordering::Relaxed);
+    // Safety: make sure only one instance can start and only after instance start,
+    // request can be response
+    let _ = INSTANCE_START
+        .get_or_init(|| async move {
+            let start_time = Instant::now();
+            tokio::spawn(async move {
+                Command::new("python3")
+                    .arg("daemon.py")
+                    .spawn()
+                    .expect("fail to boot instance")
+            })
+            .await
+            .unwrap();
 
-        // yes, it is a magic number
-        // test in M1 mac shows that MAX_TRY is nearlly 2500
-        const MAX_TRY: usize = 10000;
-        for i in 0..MAX_TRY {
-            if let Ok(_) =
-                hyper_reverse_proxy::call(client_ip, INSTANCE_ADDR, Request::new(Body::empty()))
-                    .await
-            {
-                break;
+            // yes, it is a magic number
+            // test in M1 mac shows that MAX_TRY is nearlly 2500
+            const MAX_TRY: usize = 3000;
+            for i in 0..MAX_TRY {
+                if let Ok(_) =
+                    hyper_reverse_proxy::call(client_ip, INSTANCE_ADDR, Request::new(Body::empty()))
+                        .await
+                {
+                    break;
+                }
+                if i == MAX_TRY {
+                    panic!("Unable to boot instance function")
+                }
             }
-            if i == MAX_TRY {
-                panic!("Unable to boot instance function")
-            }
-        }
-        let elapsed = start_time.elapsed();
-        println!("start time for first instance: {}", elapsed.as_millis())
-    }
+            let elapsed = start_time.elapsed();
+            println!("start time for first instance: {}", elapsed.as_millis());
+        })
+        .await;
 
     match hyper_reverse_proxy::call(client_ip, INSTANCE_ADDR, req).await {
         Ok(response) => Ok(response),
