@@ -38,10 +38,12 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
     if !INSTANCE_BOOT.load(Ordering::Relaxed) {
         tokio::spawn(async move {
             Command::new("python3")
-                .arg("daemon.py")
+                .arg("/daemon.py")
                 .spawn()
                 .expect("fail to boot instance")
-        });
+        })
+        .await
+        .unwrap();
         INSTANCE_BOOT.store(true.into(), Ordering::Relaxed);
     }
 
