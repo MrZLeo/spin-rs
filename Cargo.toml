@@ -1,10 +1,12 @@
 [package]
 name = "spin-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-tiny_http = "*"
+hyper-reverse-proxy = "0.5.*"
+hyper = { version = "0.14.*", features = ["full"] }
+tokio = { version = "1.*", features = ["full"] }
 
 [profile.release]
 opt-level = "z"
