@@ -7,4 +7,5 @@ def hello_world():
     return 'Hello python!\n'
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',port=int(8079))
+    from waitress import serve
+    serve(app, host='0.0.0.0',port=int(8079))
