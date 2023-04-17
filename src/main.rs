@@ -6,8 +6,11 @@ use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server, StatusCode,
 };
-use std::net::{IpAddr, SocketAddr};
-use tokio::{process::Command, sync::OnceCell, time::Instant};
+use std::{
+    net::{IpAddr, SocketAddr},
+    time::{SystemTime, UNIX_EPOCH},
+};
+use tokio::{process::Command, sync::OnceCell};
 
 #[tokio::main]
 async fn main() {
@@ -35,7 +38,12 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
     // request can be response
     let _ = INSTANCE_START
         .get_or_init(|| async move {
-            let start_time = Instant::now();
+            let start_time = SystemTime::now();
+            println!(
+                "Init instance at: {}",
+                start_time.duration_since(UNIX_EPOCH).unwrap().as_millis()
+            );
+
             tokio::spawn(async move {
                 Command::new("python3")
                     .arg("daemon.py")
@@ -46,15 +54,14 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
             .unwrap();
 
             // yes, it is a magic number
-            // test in M1 mac shows that MAX_TRY is nearlly 2500
-            const MAX_TRY: usize = 5000;
+            // I don't know how to decide the time to wait for instance start,
+            // but I know `MAX_TRY` works
+            const MAX_TRY: usize = 10000;
             for i in 0..=MAX_TRY {
                 if let Ok(_) =
                     hyper_reverse_proxy::call(client_ip, INSTANCE_ADDR, Request::new(Body::empty()))
                         .await
                 {
-                    let elapsed = start_time.elapsed();
-                    println!("start time for first instance: {}", elapsed.as_millis());
                     break;
                 }
                 if i == MAX_TRY {
