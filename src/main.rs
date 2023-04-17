@@ -47,20 +47,20 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
 
             // yes, it is a magic number
             // test in M1 mac shows that MAX_TRY is nearlly 2500
-            const MAX_TRY: usize = 3000;
-            for i in 0..MAX_TRY {
+            const MAX_TRY: usize = 5000;
+            for i in 0..=MAX_TRY {
                 if let Ok(_) =
                     hyper_reverse_proxy::call(client_ip, INSTANCE_ADDR, Request::new(Body::empty()))
                         .await
                 {
+                    let elapsed = start_time.elapsed();
+                    println!("start time for first instance: {}", elapsed.as_millis());
                     break;
                 }
                 if i == MAX_TRY {
                     panic!("Unable to boot instance function")
                 }
             }
-            let elapsed = start_time.elapsed();
-            println!("start time for first instance: {}", elapsed.as_millis());
         })
         .await;
 
