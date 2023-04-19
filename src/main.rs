@@ -56,14 +56,17 @@ async fn main() {
 }
 
 async fn monitor() {
+    // wait 10 minitues
+    const IDLE_TIME: u64 = 60_0;
+
     unsafe {
         while !INSTANCE.initialized() {
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_secs(IDLE_TIME)).await;
         }
         // find instance initialized
         // start to sleep until
         if INSTANCE.initialized() {
-            sleep(Duration::from_secs(10)).await;
+            sleep(Duration::from_secs(IDLE_TIME)).await;
         }
     }
 }
