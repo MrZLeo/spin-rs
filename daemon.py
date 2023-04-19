@@ -9,5 +9,5 @@ def hello_world():
     return 'Hello python!\n'
 
 if __name__ == '__main__':
-    print("finish loading at: " + str(time.time() * 1000) + "\n")
+    print("finish loading at: " + str(int(time.time() * 1000)) + "\n")
     serve(app, host='0.0.0.0',port=int(8079))
