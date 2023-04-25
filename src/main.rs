@@ -99,7 +99,8 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
                         "Init instance at: {}",
                         start_time.duration_since(UNIX_EPOCH).unwrap().as_millis(),
                     ),
-                );
+                )
+                .unwrap();
 
                 let child = tokio::spawn(async move {
                     Command::new("python3")
