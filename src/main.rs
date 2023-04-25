@@ -93,9 +93,12 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
         let _ = INSTANCE
             .get_or_init(|| async move {
                 let start_time = SystemTime::now();
-                println!(
-                    "Init instance at: {}",
-                    start_time.duration_since(UNIX_EPOCH).unwrap().as_millis()
+                std::fs::write(
+                    "start.txt",
+                    format!(
+                        "Init instance at: {}",
+                        start_time.duration_since(UNIX_EPOCH).unwrap().as_millis(),
+                    ),
                 );
 
                 let child = tokio::spawn(async move {
