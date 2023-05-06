@@ -57,7 +57,7 @@ async fn main() {
 
 async fn monitor() {
     // wait 10 minitues
-    const IDLE_TIME: u64 = 60_0;
+    const IDLE_TIME: u64 = 600;
 
     unsafe {
         while !INSTANCE.initialized() {
@@ -116,12 +116,13 @@ async fn handle(client_ip: IpAddr, req: Request<Body>) -> Result<Response<Body>,
                 // but I know `MAX_TRY` works
                 const MAX_TRY: usize = 10000;
                 for i in 0..=MAX_TRY {
-                    if let Ok(_) = hyper_reverse_proxy::call(
+                    if (hyper_reverse_proxy::call(
                         client_ip,
                         INSTANCE_ADDR,
                         Request::new(Body::empty()),
                     )
-                    .await
+                    .await)
+                        .is_ok()
                     {
                         break;
                     }
